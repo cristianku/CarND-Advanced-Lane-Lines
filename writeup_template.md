@@ -54,12 +54,45 @@ function. I applied this distortion correction to the test image using the
 
  
 
-### Pipeline (single images)
+**Pipeline (single images)**
+============================
 
-#### 1. Provide an example of a distortion-corrected image.
+**1. Provide an example of a distortion-corrected image.**
+----------------------------------------------------------
 
-To demonstrate this step, I will describe how I apply the distortion correction
-to one of the test images like this one:
+The images are undistorted using the calibration files “pickle” format:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+import pickle
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+import numpy as np
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Read in the saved objpoints and imgpoints
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+dist_pickle = pickle.load( open( "wide_dist_pickle.p", "rb" ) )
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+mtx = dist_pickle["mtx"]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+dist = dist_pickle["dist"]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+undst = cv2.undistort(test_image, mtx, dist, None, mtx)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ![](write_up_images/ori.jpg)
 
@@ -69,25 +102,31 @@ And this is the result of my distorsion correction:
 
  
 
-#### 2. Region of interested
+**2. Region of interested**
+---------------------------
 
 I prefer to cut unnecessary regions, in order later… to count the number of
-found pixel and threshold this number of pixel, to avoid parts where the sun ray
-go through a tree and create a zone hard to indentify.
+found pixel and use this number as  threshold for the maximum number of white
+pixel accepted.
 
-I use a number of pixel threshold to skip the unreadable binary image detection
+**This is to avoid parts where the sun rays go through a tree and create a zone
+or reflecting light hard to indentify .**
+
+ 
 
 ![](write_up_images/masked.png)
 
  
 
-#### 3. Gray Image conversion ( Needed for Sobel X )
+**3. Gray Image conversion ( Needed for Sobel X )**
+---------------------------------------------------
 
-![](write_up_images/gray image.png)
+![](write_up_images/gray%20image.png)
 
-####  
+ 
 
-#### 2. Sobel X 
+**4. Sobel X**
+--------------
 
 Here I apply the Sobel filter in vertical direction.
 
@@ -111,10 +150,11 @@ Example :
 
  
 
-#### **3. Magnitude**
+**5. Magnitude**
+----------------
 
 Here I calculate both Sobel in Vertical and horizontal direction, then calculate
-the **gradient magnitude **
+the **gradient magnitude**
 
  
 
@@ -124,7 +164,7 @@ gradmag = np.sqrt(sobelx**2 + sobely**2)
 
  
 
-Then I will apply the following threshold  ( the average is calculated excluding
+Then I will apply the following threshold ( the average is calculated excluding
 the null values ):
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -137,7 +177,8 @@ thresh_max = np.max(input_gray_img)
 
 ![](write_up_images/mag_binary.png)
 
-#### **4. Gradient direction**
+**6. Gradient direction**
+-------------------------
 
 Here I calculate both Sobel in Vertical and horizontal direction, and then
 applying the Arctan2 formula to find the
@@ -147,14 +188,16 @@ direction of the lines ( their angle ), with this threshold : **thresh=(.7,
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 absgraddir = np.arctan2(np.absolute(sobely), np.absolute(sobelx))
-
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-![](write_up_images/dir thresh.png)
+![](write_up_images/dir%20thresh.png)
 
-#### **4. Working with HLS channels**
+ 
 
-Firstly lets convert the image from RGB to HLS:
+**7. Working with HLS channels**
+--------------------------------
+
+### Firstly lets convert the image from RGB to HLS:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 hls = cv2.cvtColor(masked_image, cv2.COLOR_RGB2HLS).astype(np.float)
@@ -168,7 +211,7 @@ hls = cv2.cvtColor(masked_image, cv2.COLOR_RGB2HLS).astype(np.float)
 
  
 
-**S-CHANNEL threshold**
+### **S-CHANNEL threshold**
 
 Threshold calculation:
 
@@ -181,7 +224,7 @@ thresh_min = np.mean(channel[channel> 0]) * 2
 thresh_max = np.max(channel[channel> 0]) 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-![](write_up_images/s channel binary.png)
+![](write_up_images/s%20channel%20binary.png)
 
  
 
@@ -197,7 +240,7 @@ np.count_nonzero(s_binary_new)
 
  
 
-**L-CHANNEL threshold**
+### **L-CHANNEL threshold**
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Calculating the mean of non zero points of the selected channel and the max value        
@@ -208,16 +251,16 @@ thresh_min = np.mean(channel[channel> 0]) * 2
 thresh_max = np.max(channel[channel> 0]) 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-![](write_up_images/l-channel binary.png)
+![](write_up_images/l-channel%20binary.png)
 
 **Reverting the colors from white to black , and selecting the area of interest(
 and counting the white points )**
 
  
 
-![](write_up_images/l channel binary reverted selected.png)
+![](write_up_images/l%20channel%20binary%20reverted%20selected.png)
 
- 
+**Counting the number of white pixels​**
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 print ( np.count_nonzero (l_binary_new))
@@ -227,7 +270,9 @@ print ( np.count_nonzero (l_binary_new))
 920
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Combining together the L and S channels binary **
+ 
+
+**Combining together the L and S channels binary**
 
 Here I will discard the frames with excess of white points to avoid false
 readings:
@@ -263,30 +308,32 @@ hls_combined = np.zeros_like(s_binary_new)
 hls_combined[s_binary_new == 1 ] = 1
 
 hls_combined[l_binary_new == 1 ] = 1
-
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+**l + S channel combined**
+
+![](write_up_images/hls%20binary%20combined.png)
+
  
 
-![](write_up_images/hls binary combined.png)
-
- 
-
-**Combining ALL together **
+**Combining ALL together**
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 combined = np.zeros_like(dir_binary)
 combined[(hls_combined == 1 )|((dir_binary == 1)&(mag_binary == 1)) |((dir_binary == 1)&(sobelx_binary == 1))] = 1
-
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-![](write_up_images/final binary combined.png)
+**combination of all thresholds together**
+
+![](write_up_images/final%20binary%20combined.png)
 
  
 
-#### 3. Perspective transform
+**8. Perspective transform**
+----------------------------
 
-I chose the hardcode the source and destination points in the following manner:
+I have choosen to hardcode the source and destination points in the following
+manner:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ python
 def calc_src_corners(image):
@@ -320,8 +367,6 @@ def calc_dst_corners(image):
                               dst_bottom_left
                              ])
     return dst_corners
-
-
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This resulted in the following source and destination points:
@@ -337,43 +382,264 @@ I verified that my perspective transform was working as expected by drawing the
 `src` and `dst` points onto a test image and its warped counterpart to verify
 that the lines appear parallel in the warped image.
 
-![](write_up_images/src points.png)
+![](write_up_images/src%20points.png)
 
-![](write_up_images/bird eyes.png)
-
- 
+![](write_up_images/bird%20eyes.png)
 
  
 
-#### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
+**9. Lanes identification**
+---------------------------
+
+#### To identify the LANES we need first of all to find their position in the image.
+
+#### First of all we need to find the position at the bottom of the image , thats why the histograms comes in hand, its really useful to find the "**peeks**"
+
+ 
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+import numpy as np
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+histogram = np.sum(warped_cutted[warped_cutted.shape[0]//2:,:], axis=0)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+plt.plot(histogram)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+plt.show()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+ 
+
+Note the use of **warped_cutted.shape[0]//2:, **
+
+it do np.sum with axis = 0, so to sum all the “columns” of the image and find
+out on a horizontal line where are the starting points. —\> We are trying to
+find the starting point for the sliding windows at the bottom of the image.
+
+![](write_up_images/histo.png)
+
+ 
 
 Then I did some other stuff and fit my lane lines with a 2nd order polynomial
 kinda like this:
 
-![alt text](./examples/color_fit_lines.jpg)
+ 
 
-#### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
+![](write_up_images/polyfit.jpg)
 
-I did this in lines \# through \# in my code in `my_other_file.py`
+ 
 
-#### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Step through the windows one by one
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    for window in range(nwindows):
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#         print ("window" )
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Identify window boundaries in x and y (and right and left)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        win_y_low = input_image.shape[0] - (window+1)*window_height
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        win_y_high = input_image.shape[0] - window*window_height
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        win_xleft_low = leftx_current - margin
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        win_xleft_high = leftx_current + margin
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        win_xright_low = rightx_current - margin
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        win_xright_high = rightx_current + margin
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Draw the windows on the visualization image
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+ 
+
+![](write_up_images/sliding windows.png)
+
+After that for future iteration I use an other function , that already knows the
+position of the “windows”, so its is much easier to find the points in that
+windows:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+def find_lanes(binary_warped, left_fit, right_fit):
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+…….
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    nonzeroy = np.array(nonzero[0])
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    nonzerox = np.array(nonzero[1])
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    margin = 100
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    left_lane_inds = ((nonzerox > (left_fit[0]*(nonzeroy**2) + left_fit[1]*nonzeroy + 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    left_fit[2] - margin)) & (nonzerox < (left_fit[0]*(nonzeroy**2) + 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    left_fit[1]*nonzeroy + left_fit[2] + margin))) 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+![](write_up_images/finding lanes no sliding windows.png)
+
+ 
+
+**9. Curvature of the lane and position of the vehicle with respect to center**
+-------------------------------------------------------------------------------
+
+ 
+
+**10. Final image example**
+---------------------------
 
 I implemented this step in lines \# through \# in my code in
 `yet_another_file.py` in the function `map_lane()`. Here is an example of my
 result on a test image:
 
-![alt text](./examples/example_output.jpg)
+![](write_up_images/final image.png)
 
-### Pipeline (video)
+ 
 
-#### 1. Provide a link to your final video output. Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
+**PIPELINE VIDEO**
+==================
 
-Here's a [link to my video result](./project_video.mp4)
+ 
 
-### Discussion
+<https://www.youtube.com/watch?v=syV9GxVa9c0>
+---------------------------------------------
 
-#### 1. Briefly discuss any problems / issues you faced in your implementation of this project. Where will your pipeline likely fail? What could you do to make it more robust?
+ 
 
-Here I'll talk about the approach I took, what techniques I used, what worked
-and why, where the pipeline might fail and how I might improve it if I were
-going to pursue this project further.
+**DISCUSSION**
+==============
+
+####  
+
+Correct lane identification vs just skip the bad identified frames
+------------------------------------------------------------------
+
+ 
+
+I had many issues trying to identify the best method to decide to discard the
+images, the frames, where the lane finding was bad.
+
+ 
+
+What do I mean with bad ? it means that the curvature of actual lane, is too
+much different from the previous history.
+
+ 
+
+I am using a weighted average of the last 10 frames to compare the actual
+meaurement.
+
+here the python code ( in the **class Lane )**:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    def coeff_history_avg_fit(self):
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        ### calculating the average on last n-fits
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        if len(self._coeff_history) > 0:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            coeffs = np.average(self._coeff_history,axis = 0, \
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                              weights=range(1, len(self._coeff_history) + 1)\
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                             ) 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+ 
+
+Then I have a method setter in the class Lane, where I compare the current
+reading with the weighted average of the historical curvature coefficients ( the
+polynomial coefficients ) in order to decide to discard or to save the current
+fit.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    @current_fit.setter    
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    def current_fit (self, input_fit):
+.........
+        if   self.input_vs_history_fit(input_fit) >= 0 and  self.input_vs_history_fit(input_fit) < 40:
+            self._current_fit = input_fit
+            self.coeff_history = input_fit
+            self.discarded_fits = 0 
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+ 
+
+**But here there is an issue. **
+
+every time we discard a frame, it can be, that the next frame difference, and
+every frame coming next , when discarded, the difference between the actual and
+the history can grow and grow.
+
+Let think for example if we start discarding frames with the lane curving.
+
+ 
+
+**To avoid this mistake to  start discarding frames “like a mad”, I have addes a
+condition in the Lane.current_fit setter**
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+           or self.discarded_fits >= 5:
+            
+        ## in case the difference is higher, I will use an average value instead of discarding 
+#             print ( "jestem tutaj !!!!")
+            self._current_fit = input_fit
+            self.coeff_history = input_fit
+            self.discarded_fits = 0 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -55,23 +55,31 @@ Dependencies
 Details About Files In This Directory
 -------------------------------------
 
--   `camera_cal` folder
+-   `camera_cal` **folder**
 
     images for camera calibration.
 
--   `test_images` folder
+-   `test_images` **folder**
 
     Images for testing the pipeline on single frames from Udacity
 
--   `output_images` folder
+-   `output_images` **folder**
 
     test_images processes by the pipeline
 
--   `test_images2 `folder` `
+-   `write_up_images` **folder**
+
+    images for write_up.md
+
+-   wide_dist_pickle.p
+
+    Pickle file used to store the Calibration data ( Objpoints and Imgpoint)
+
+-   `test_images2 `**folder**` `
 
     Test images extracted from **challenge_video.mp4**
 
--   `test_images3 `folder
+-   `test_images3 `**folder**
 
     Test images extracted from **project_video.mp4**
 
@@ -79,7 +87,9 @@ Details About Files In This Directory
 
     video the pipeline should work well on
 
--   `project_video_output.mp4`
+     
+
+-   **project_video_output.mp4**
 
     `project_video.mp4` processed by the pipeline
 

@@ -106,7 +106,7 @@ And this is the result of my distorsion correction:
 ---------------------------
 
 I prefer to cut unnecessary regions, in order later… to count the number of
-found pixel and use this number as  threshold for the maximum number of white
+found pixel and use this number as threshold for the maximum number of white
 pixel accepted.
 
 **This is to avoid parts where the sun rays go through a tree and create a zone
@@ -415,7 +415,7 @@ plt.show()
 
  
 
-Note the use of **warped_cutted.shape[0]//2:, **
+Note the use of **warped_cutted.shape[0]//2:,**
 
 it do np.sum with axis = 0, so to sum all the “columns” of the image and find
 out on a horizontal line where are the starting points. —\> We are trying to
@@ -480,7 +480,7 @@ kinda like this:
 
  
 
-![](write_up_images/sliding windows.png)
+![](write_up_images/sliding%20windows.png)
 
 After that for future iteration I use an other function , that already knows the
 position of the “windows”, so its is much easier to find the points in that
@@ -518,7 +518,7 @@ def find_lanes(binary_warped, left_fit, right_fit):
     left_fit[1]*nonzeroy + left_fit[2] + margin))) 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-![](write_up_images/finding lanes no sliding windows.png)
+![](write_up_images/finding%20lanes%20no%20sliding%20windows.png)
 
  
 
@@ -534,7 +534,7 @@ I implemented this step in lines \# through \# in my code in
 `yet_another_file.py` in the function `map_lane()`. Here is an example of my
 result on a test image:
 
-![](write_up_images/final image.png)
+![](write_up_images/final%20image.png)
 
  
 
@@ -615,13 +615,17 @@ fit.
             self._current_fit = input_fit
             self.coeff_history = input_fit
             self.discarded_fits = 0 
-
-
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
  
 
-**But here there is an issue. **
+The method **self.input_vs_history_fit IS COMPARING ONLY THE COEFFICIENT A AND B
+..**… reade the discussion below. ( Udacity cutted intentionally some frames ??
+)
+
+ 
+
+**But here there is an issue.**
 
 every time we discard a frame, it can be, that the next frame difference, and
 every frame coming next , when discarded, the difference between the actual and
@@ -631,7 +635,7 @@ Let think for example if we start discarding frames with the lane curving.
 
  
 
-**To avoid this mistake to  start discarding frames “like a mad”, I have addes a
+**To avoid this mistake to start discarding frames “like a mad”, I have addes a
 condition in the Lane.current_fit setter**
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -643,3 +647,22 @@ condition in the Lane.current_fit setter**
             self.coeff_history = input_fit
             self.discarded_fits = 0 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+ 
+
+**Other important point :**
+
+I have used two methods to average the previous fits.
+
+At the beginning I were creating all the points from the poly coefficients for
+all the lets say 10 lasts correct reading,. and then calling again the polyfit
+on this huge amount of points coming from all different correct fitted lanes.
+
+ 
+
+But then i have changed and i use the average of the coefficients A and B ( not
+the C because I have notice that it causes me too much interference in the
+result ) --\> **I think that in the video Udacity voluntarily cutted some frames
+to make the challenge more difficult **
+
+ 

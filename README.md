@@ -8,6 +8,8 @@ Udacity Advanced Lane lines finding
 \*\*\* Official Udacity Review :
 <https://review.udacity.com/#!/reviews/843707/shared> \*\*\*\*
 
+\*\*\* Youtube Video : <https://www.youtube.com/watch?v=syV9GxVa9c0>
+
  
 
 The goal is to write a software pipeline to identify the lane boundaries in a

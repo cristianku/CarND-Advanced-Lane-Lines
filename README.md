@@ -5,6 +5,11 @@ Udacity Advanced Lane lines finding
 
  
 
+\*\*\* Official Udacity Review :
+<https://review.udacity.com/#!/reviews/843707/shared> \*\*\*\*
+
+ 
+
 The goal is to write a software pipeline to identify the lane boundaries in a
 video.
 
@@ -75,11 +80,11 @@ Details About Files In This Directory
 
     Pickle file used to store the Calibration data ( Objpoints and Imgpoint)
 
--   `test_images2 `**folder**` `
+-   `test_images2`**folder**\` \`
 
     Test images extracted from **challenge_video.mp4**
 
--   `test_images3 `**folder**
+-   `test_images3`**folder**
 
     Test images extracted from **project_video.mp4**
 
